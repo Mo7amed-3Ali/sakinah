@@ -131,7 +131,7 @@ function nxt(){const n=Date.now(),T=times(new Date());for(const i of PT)if(T[i]>
 const fired={};
 function tick(){const n=Date.now(),x=nxt(),cd=$('#cd');
 if(cd){let s=Math.max(0,Math.round((x.t-n)/1000));cd.textContent=pad(s/3600|0)+':'+pad(s%3600/60|0)+':'+pad(s%60);$('#nn').textContent=x.i==0&&times(new Date())[0]<n?'الفجر (غدًا)':PN[x.i]}
-if(S.notif){const T=times(new Date());for(const i of PT){const k=dayKey()+i;if(!S.mute[i]&&n>=T[i]&&n-T[i]<90000&&!fired[k]){fired[k]=1;adhan(i)}}}}
+if(CFG.ad.on!==false){const T=times(new Date());for(const i of PT){const k=dayKey()+i;if(!(CFG.ad.mute||{})[i]&&n>=T[i]&&n-T[i]<90000&&!fired[k]){fired[k]=1;adhan(i)}}}}
 setInterval(tick,1000);
 
 /* ---------- views ---------- */
@@ -181,19 +181,19 @@ document.addEventListener('click',e=>{const id=e.target.id;if(id=='pp')pp();else
 document.addEventListener('change',e=>{if(e.target.id=='prc'){S.rc=+e.target.value;save();if(AP.on||AP.paused){const w=AP.on;playAt(AP.s,AP.v);if(!w){AU.pause();AP.on=0;AP.paused=1;upd()}}}});
 /* Adhan */
 const ADA=new Audio();ADA.preload='auto';var ADR=0;
-async function adSrc(){try{const c=await caches.open('sakinah-audio'),r=await c.match('/__adhan');if(r)return URL.createObjectURL(await r.blob())}catch(e){}return 'adhan.mp3'}
+async function adSrc(i){return i==0&&CFG.ad.fajr?CFG.ad.fajr:(CFG.ad.file||'adhan.mp3')}
 function showAd(m){let o=$('#ado');if(!o){o=document.createElement('div');o.id='ado';o.style.cssText='position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-content:center;text-align:center;padding:30px;gap:16px';document.body.appendChild(o)}
 o.innerHTML='<div style="font:700 34px Amiri,serif;color:var(--sd)">'+m+'</div><button class="btn on" id="adx">إيقاف الأذان</button>';o.style.display='grid'}
 function hideAd(){const o=$('#ado');if(o)o.style.display='none'}
 function endAd(){ADA.pause();try{ADA.currentTime=0}catch(e){}hideAd();if(ADR){ADR=0;AP.paused=1;pp()}}
 async function adhan(i){const m='حان الآن وقت صلاة '+PN[i];try{if(Notification.permission=='granted')new Notification('سكينة',{body:m})}catch(e){}
-showAd(m);if(S.adh===false)return;if(AP.on){AU.pause();AP.on=0;AP.paused=1;ADR=1;upd()}
-ADA.src=await adSrc();try{await ADA.play()}catch(e){toast('المتصفح منع تشغيل الأذان تلقائيًا. افتح التطبيق والمس الشاشة مرة واحدة ثم أعد المحاولة.')}}
+showAd(m);if(AP.on){AU.pause();AP.on=0;AP.paused=1;ADR=1;upd()}
+ADA.src=await adSrc(i);try{await ADA.play()}catch(e){toast('المتصفح منع تشغيل الأذان تلقائيًا. افتح التطبيق والمس الشاشة مرة واحدة ثم أعد المحاولة.')}}
 ADA.onended=endAd;ADA.onerror=()=>{toast('ملف الأذان غير موجود. اختر ملفًا من الإعدادات أو ضع adhan.mp3 في الموقع.')};
 document.addEventListener('click',e=>{if(e.target.id=='adx')endAd();else if(e.target.id=='adt'){S.adh=S.adh===false;save();vS()}else if(e.target.id=='adtest')adhan(2);else if(e.target.id=='wlt'){S.wl=!S.wl;save();wl();vS()}},false);
-document.addEventListener('click',()=>{if(ADA.dataset.p)return;ADA.dataset.p=1;adSrc().then(s=>{ADA.src=s;ADA.muted=true;ADA.play().then(()=>{ADA.pause();ADA.muted=false;try{ADA.currentTime=0}catch(e){}}).catch(()=>{ADA.muted=false})})},{once:true});
+document.addEventListener('click',()=>{if(ADA.dataset.p)return;ADA.dataset.p=1;try{if(typeof Notification!='undefined'&&Notification.permission=='default')Notification.requestPermission()}catch(e){}adSrc().then(s=>{ADA.src=s;ADA.muted=true;ADA.play().then(()=>{ADA.pause();ADA.muted=false;try{ADA.currentTime=0}catch(e){}}).catch(()=>{ADA.muted=false})})},{once:true});
 document.addEventListener('change',async e=>{if(e.target.id!='adf')return;const f=e.target.files[0];if(!f)return;try{const c=await caches.open('sakinah-audio');await c.put('/__adhan',new Response(f,{headers:{'Content-Type':f.type||'audio/mpeg'}}));S.adn=f.name;save();toast('تم حفظ ملف الأذان.');if(S.tab=='s')vS()}catch(x){toast('تعذّر حفظ الملف.')}});
-var WLK=null;function wl(){if(!S.wl||!('wakeLock' in navigator)||document.visibilityState!='visible')return;navigator.wakeLock.request('screen').then(l=>WLK=l).catch(()=>{})}
+var WLK=null;function wl(){if(!CFG.ad.wl||!('wakeLock' in navigator)||document.visibilityState!='visible')return;navigator.wakeLock.request('screen').then(l=>WLK=l).catch(()=>{})}
 document.addEventListener('visibilitychange',wl);
 /* Offline audio */
 var DL={busy:0,stop:0};
@@ -231,7 +231,7 @@ V.onclick=e=>{const c=e.target.closest('[data-c]');if(c){cat=c.dataset.c;return 
 /* Prayer */
 function vP(){fetchApi(new Date());fetchApi(new Date(Date.now()+864e5));const T=times(new Date()),x=nxt(),hj=new Date().toLocaleDateString('ar-SA-u-ca-islamic-umalqura',{day:'numeric',month:'long',year:'numeric'});
 V.innerHTML=(CFG.a?`<div class="card" style="border-color:var(--gd)">${esc(CFG.a)}</div>`:'')+`<div class="card next"><div style="color:var(--t2)">الصلاة القادمة</div><div class="n" id="nn"></div><div class="cd" id="cd">--:--:--</div><div style="color:var(--t2)">عند ${fmt(x.t)} · ${place().n}</div></div>
-<div class="card">${PN.map((n,i)=>`<div class="pr ${i==x.i?'nx':''}"><span class="sp">${n}</span><span>${fmt(T[i])}</span>${PT.includes(i)?`<button class="bell ${S.mute[i]?'':'on'}" data-b="${i}" aria-label="تنبيه ${n}">${S.mute[i]?'مكتوم':'تنبيه'}</button>`:'<span style="width:58px"></span>'}</div>`).join('')}</div>
+<div class="card">${PN.map((n,i)=>`<div class="pr ${i==x.i?'nx':''}"><span class="sp">${n}</span><span>${fmt(T[i])}</span></div>`).join('')}</div>
 <div style="text-align:center;color:var(--t2);font-size:14px">${hj} · ${METH[S.method][0]}<br>${APIC[akey(new Date())]?'المصدر: Aladhan API':'حساب محلي (دون اتصال)'}</div>`;
 V.onclick=e=>{const b=e.target.closest('[data-b]');if(b){const i=b.dataset.b;S.mute[i]=!S.mute[i];save();vP()}};tick()}
 
@@ -260,12 +260,6 @@ function vS(){V.innerHTML=`<div class="card"><h2>المظهر</h2><div class="ro
 <div class="card"><h2>الموقع وطريقة الحساب</h2><select id="ct">${CITIES.map((c,i)=>`<option value="${i}" ${S.city==i?'selected':''}>${c[0]}</option>`).join('')}${S.lat!=null?`<option value="-1" ${S.city<0?'selected':''}>موقعي الحالي</option>`:''}</select>
 <div style="height:10px"></div><button class="btn" id="gp">استخدم موقعي الحالي</button><div style="height:10px"></div>
 <select id="mt">${Object.entries(METH).map(([k,v])=>`<option value="${k}" ${S.method==k?'selected':''}>${v[0]}</option>`).join('')}</select></div>
-<div class="card"><h2>الأذان</h2><div class="tg"><span>تشغيل الأذان وقت الصلاة</span><button class="btn ${S.adh===false?'':'on'}" id="adt">${S.adh===false?'متوقف':'مفعّل'}</button></div>
-<div class="tg"><span>إبقاء الشاشة مضاءة (يضمن عمل الأذان)</span><button class="btn ${S.wl?'on':''}" id="wlt">${S.wl?'مفعّل':'متوقف'}</button></div>
-<p style="color:var(--t2);font-size:14px;margin:6px 0">ملف الأذان الحالي: ${S.adn?S.adn:'adhan.mp3 من الموقع'}</p>
-<input type="file" id="adf" accept="audio/*" style="font-size:14px"><div style="height:10px"></div><button class="btn" id="adtest">تجربة الأذان الآن</button>
-<p style="color:var(--t2);font-size:13px;margin:10px 0 0">يعمل الأذان والتطبيق مفتوح. لتفعيله من «تنبيهات الصلاة» أدناه، ويمكن كتم أي صلاة من شاشة المواقيت.</p></div>
-<div class="card"><h2>التنبيهات</h2><div class="tg"><span>تنبيهات الصلاة (أثناء فتح التطبيق)</span><button class="btn ${S.notif?'on':''}" id="nt">${S.notif?'مفعّلة':'متوقفة'}</button></div><p style="color:var(--t2);font-size:13px;margin:0">يمكنك كتم كل صلاة من شاشة المواقيت.</p></div>
 <div class="card"><h2>مصدر النص</h2><p style="color:var(--t2);font-size:14px;margin:0">نص المصحف من مشروع <a href="https://tanzil.net" style="color:var(--sd)">Tanzil</a> (الإصدار البسيط 1.1) بترخيص Creative Commons Attribution 3.0، ويُنقل كما هو دون تعديل.</p></div><div class="card"><button class="btn" id="rst">مسح كل البيانات المحفوظة</button></div>`;
 V.onclick=e=>{const t=e.target.closest('[data-th]');if(t){S.theme=t.dataset.th;save();applyTheme();vS()}
 if(e.target.id=='nt'){if(!S.notif&&typeof Notification!='undefined')Notification.requestPermission();S.notif=!S.notif;save();vS()}
@@ -274,11 +268,11 @@ if(e.target.id=='rst'&&confirm('سيتم مسح التفضيلات والعلا�
 $('#fz').oninput=e=>{S.fs=+e.target.value;save();applyTheme()};$('#ct').onchange=e=>{S.city=+e.target.value;save()};$('#mt').onchange=e=>{S.method=e.target.value;save()}}
 
 /* Admin */
-var CFG={a:'',x:{},h:{}},DR=null;
+var CFG={a:'',x:{},h:{},ad:{}},DR=null;
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ADV=()=>{const o={};for(const k in AD)if(!CFG.h[k])o[k]=AD[k].concat(CFG.x[k]||[]);return o};
 const dbp=()=>typeof claude=='undefined'?Promise.resolve(null):claude.use('db').catch(()=>null);
-function loadCfg(){fetch('config.json?'+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{if(!d)return;CFG={a:d.a||'',x:d.x||{},h:d.h||{}};if(S.tab=='p'||S.tab=='a')go(S.tab)}).catch(()=>{})}
+function loadCfg(){fetch('config.json?'+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{if(!d)return;CFG={a:d.a||'',x:d.x||{},h:d.h||{},ad:d.ad||{}};wl();if(S.tab=='p'||S.tab=='a')go(S.tab)}).catch(()=>{})}
 function vX(){location.href='admin.html'}
 function drawX(){const K=Object.keys(AD),ta='width:100%;background:var(--bg);border:1px solid var(--ln);border-radius:14px;padding:10px 14px;font:inherit;color:var(--tx)';
 V.innerHTML=`<div class="card"><h2>رسالة للمستخدمين</h2><textarea id="an" rows="3" style="${ta}">${esc(DR.a)}</textarea><p style="color:var(--t2);font-size:13px;margin:6px 0 0">تظهر أعلى شاشة المواقيت. اتركها فارغة لإخفائها.</p></div>`+K.map((k,i)=>`<div class="card"><div class="tg"><h2 style="margin:0">أذكار ${k}</h2><button class="btn ${DR.h[k]?'':'on'}" data-h="${i}">${DR.h[k]?'مخفي':'ظاهر'}</button></div><p style="color:var(--t2);font-size:13px;margin:0">${AD[k].length} أذكار أساسية، ويمكنك إضافة غيرها:</p>${(DR.x[k]||[]).map((x,j)=>`<div class="tg"><span>${esc(x[0])} (${x[1]})</span><button class="btn" data-d="${i}|${j}">حذف</button></div>`).join('')}<input type="text" id="t${i}" placeholder="نص الذكر الجديد" style="margin-top:8px"><div class="row" style="margin-top:8px"><input type="text" id="n${i}" placeholder="عدد التكرار" inputmode="numeric" style="width:130px"><button class="btn" data-a="${i}">إضافة</button></div></div>`).join('')+'<button class="btn on" id="sv">نشر التغييرات للجميع</button>';

@@ -1,5 +1,6 @@
 {
  "a": "",
  "x": {},
- "h": {}
+ "h": {},
+ "ad": {"on": true, "file": "adhan.mp3", "fajr": "", "mute": {}, "wl": false}
 }

@@ -10,20 +10,23 @@ button{border:1px solid var(--ln);background:var(--bg);color:var(--tx);border-ra
 <h1>لوحة إدارة سكينة</h1>
 <div class="c"><small>هذه الصفحة تُجهّز ملف config.json فقط. بعد التنزيل ارفعه مكان الملف القديم في موقعك لتظهر التغييرات للجميع. اجعل رابط هذه الصفحة سرًّا، أو احذفها من الموقع عند عدم الحاجة.</small></div>
 <div class="c"><h2>رسالة للمستخدمين</h2><textarea id="a" rows="3"></textarea><small>تظهر أعلى شاشة المواقيت. اتركها فارغة لإخفائها.</small></div>
-<div id="k"></div>
+<div id="ad"></div><div id="k"></div>
 <div class="c r"><button class="on" id="dl">تنزيل config.json</button><button id="cp">نسخ المحتوى</button></div>
 <div class="c"><small id="st">جارٍ تحميل الإعدادات الحالية…</small></div>
 <script>
-const K=['الصباح','المساء','بعد الصلاة','يومية'];let D={a:'',x:{},h:{}};
+const K=['الصباح','المساء','بعد الصلاة','يومية'];let D={a:'',x:{},h:{},ad:{}};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const $=s=>document.querySelector(s);
-function draw(){$('#a').value=D.a;$('#k').innerHTML=K.map((k,i)=>`<div class="c"><div class="r"><h2>أذكار ${k}</h2><button data-h="${i}" class="${D.h[k]?'':'on'}">${D.h[k]?'مخفي':'ظاهر'}</button></div>${(D.x[k]||[]).map((x,j)=>`<div class="r"><span>${esc(x[0])} (${x[1]})</span><button data-d="${i}|${j}">حذف</button></div>`).join('')}<input id="t${i}" placeholder="نص ذكر جديد"><div class="r"><input id="n${i}" placeholder="عدد التكرار" inputmode="numeric" style="width:130px"><button data-a="${i}">إضافة</button></div></div>`).join('')}
-document.addEventListener('click',e=>{const t=e.target;if(!t.dataset)return;D.a=$('#a').value;
-if(t.dataset.h!=null){const k=K[+t.dataset.h];D.h[k]=!D.h[k];draw()}
+function drawAd(){const A=D.ad||{},M=A.mute||{};$('#ad').innerHTML=`<div class="c"><h2>الأذان (تلقائي)</h2><div class="r"><span>تشغيل الأذان تلقائيًا</span><button data-ad="on" class="${A.on===false?'':'on'}">${A.on===false?'متوقف':'مفعّل'}</button></div><div class="r"><span>إبقاء الشاشة مضاءة</span><button data-ad="wl" class="${A.wl?'on':''}">${A.wl?'مفعّل':'متوقف'}</button></div><small>ملف الأذان (ارفعه بجوار index.html)</small><input id="af" value="${esc(A.file||'adhan.mp3')}"><small>ملف أذان الفجر (اختياري)</small><input id="ff" value="${esc(A.fajr||'')}">`+[[0,'الفجر'],[2,'الظهر'],[3,'العصر'],[4,'المغرب'],[5,'العشاء']].map(p=>`<div class="r"><span>أذان ${p[1]}</span><button data-ad="m${p[0]}" class="${M[p[0]]?'':'on'}">${M[p[0]]?'مكتوم':'يرن'}</button></div>`).join('')+'</div>'}
+const syn=()=>{D.a=$('#a').value;D.ad=D.ad||{};if($('#af')){D.ad.file=$('#af').value.trim();D.ad.fajr=$('#ff').value.trim()}};
+function draw(){drawAd();$('#a').value=D.a;$('#k').innerHTML=K.map((k,i)=>`<div class="c"><div class="r"><h2>أذكار ${k}</h2><button data-h="${i}" class="${D.h[k]?'':'on'}">${D.h[k]?'مخفي':'ظاهر'}</button></div>${(D.x[k]||[]).map((x,j)=>`<div class="r"><span>${esc(x[0])} (${x[1]})</span><button data-d="${i}|${j}">حذف</button></div>`).join('')}<input id="t${i}" placeholder="نص ذكر جديد"><div class="r"><input id="n${i}" placeholder="عدد التكرار" inputmode="numeric" style="width:130px"><button data-a="${i}">إضافة</button></div></div>`).join('')}
+document.addEventListener('click',e=>{const t=e.target;if(!t.dataset)return;syn();
+if(t.dataset.ad){const k=t.dataset.ad;if(k=='on')D.ad.on=D.ad.on===false;else if(k=='wl')D.ad.wl=!D.ad.wl;else{D.ad.mute=D.ad.mute||{};D.ad.mute[k.slice(1)]=!D.ad.mute[k.slice(1)]}draw()}
+else if(t.dataset.h!=null){const k=K[+t.dataset.h];D.h[k]=!D.h[k];draw()}
 else if(t.dataset.d){const[i,j]=t.dataset.d.split('|');D.x[K[+i]].splice(+j,1);draw()}
 else if(t.dataset.a!=null){const i=+t.dataset.a,v=$('#t'+i).value.trim();if(!v)return;(D.x[K[i]]=D.x[K[i]]||[]).push([v,Math.max(1,parseInt($('#n'+i).value)||1)]);draw()}});
-const out=()=>{D.a=$('#a').value;return JSON.stringify(D,null,1)};
+const out=()=>{syn();return JSON.stringify(D,null,1)};
 $('#dl').onclick=()=>{const u=URL.createObjectURL(new Blob([out()],{type:'application/json'})),a=document.createElement('a');a.href=u;a.download='config.json';a.click()};
 $('#cp').onclick=()=>navigator.clipboard.writeText(out()).then(()=>$('#st').textContent='تم النسخ.').catch(()=>$('#st').textContent='تعذّر النسخ، استخدم التنزيل.');
-fetch('config.json?'+Date.now()).then(r=>r.json()).then(d=>{D={a:d.a||'',x:d.x||{},h:d.h||{}};$('#st').textContent='تم تحميل الإعدادات الحالية.'}).catch(()=>$('#st').textContent='بدأنا بإعدادات فارغة.').finally(draw);
+fetch('config.json?'+Date.now()).then(r=>r.json()).then(d=>{D={a:d.a||'',x:d.x||{},h:d.h||{},ad:d.ad||{}};$('#st').textContent='تم تحميل الإعدادات الحالية.'}).catch(()=>$('#st').textContent='بدأنا بإعدادات فارغة.').finally(draw);
 </script></body></html>
