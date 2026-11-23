@@ -131,7 +131,7 @@ function nxt(){const n=Date.now(),T=times(new Date());for(const i of PT)if(T[i]>
 const fired={};
 function tick(){const n=Date.now(),x=nxt(),cd=$('#cd');
 if(cd){let s=Math.max(0,Math.round((x.t-n)/1000));cd.textContent=pad(s/3600|0)+':'+pad(s%3600/60|0)+':'+pad(s%60);$('#nn').textContent=x.i==0&&times(new Date())[0]<n?'الفجر (غدًا)':PN[x.i]}
-if(S.notif){const T=times(new Date());for(const i of PT){const k=dayKey()+i;if(!S.mute[i]&&n>=T[i]&&n-T[i]<6000&&!fired[k]){fired[k]=1;const m='حان الآن وقت صلاة '+PN[i];toast(m);try{if(Notification.permission=='granted')new Notification('سكينة',{body:m})}catch(e){}}}}}
+if(S.notif){const T=times(new Date());for(const i of PT){const k=dayKey()+i;if(!S.mute[i]&&n>=T[i]&&n-T[i]<90000&&!fired[k]){fired[k]=1;adhan(i)}}}}
 setInterval(tick,1000);
 
 /* ---------- views ---------- */
@@ -179,6 +179,22 @@ document.querySelectorAll('[data-ps]').forEach(x=>{const i=+x.dataset.ps,o=on&&A
 function mark(sc){document.querySelectorAll('.ay.pl').forEach(x=>x.classList.remove('pl'));if(AP.on&&AP.s==S.pos.s&&AP.v>0){const a=$('#v'+AP.v);if(a){a.classList.add('pl');if(sc)a.scrollIntoView({block:'center',behavior:'smooth'})}}}
 document.addEventListener('click',e=>{const id=e.target.id;if(id=='pp')pp();else if(id=='pn')step(1);else if(id=='pv')step(-1)});
 document.addEventListener('change',e=>{if(e.target.id=='prc'){S.rc=+e.target.value;save();if(AP.on||AP.paused){const w=AP.on;playAt(AP.s,AP.v);if(!w){AU.pause();AP.on=0;AP.paused=1;upd()}}}});
+/* Adhan */
+const ADA=new Audio();ADA.preload='auto';var ADR=0;
+async function adSrc(){try{const c=await caches.open('sakinah-audio'),r=await c.match('/__adhan');if(r)return URL.createObjectURL(await r.blob())}catch(e){}return 'adhan.mp3'}
+function showAd(m){let o=$('#ado');if(!o){o=document.createElement('div');o.id='ado';o.style.cssText='position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-content:center;text-align:center;padding:30px;gap:16px';document.body.appendChild(o)}
+o.innerHTML='<div style="font:700 34px Amiri,serif;color:var(--sd)">'+m+'</div><button class="btn on" id="adx">إيقاف الأذان</button>';o.style.display='grid'}
+function hideAd(){const o=$('#ado');if(o)o.style.display='none'}
+function endAd(){ADA.pause();try{ADA.currentTime=0}catch(e){}hideAd();if(ADR){ADR=0;AP.paused=1;pp()}}
+async function adhan(i){const m='حان الآن وقت صلاة '+PN[i];try{if(Notification.permission=='granted')new Notification('سكينة',{body:m})}catch(e){}
+showAd(m);if(S.adh===false)return;if(AP.on){AU.pause();AP.on=0;AP.paused=1;ADR=1;upd()}
+ADA.src=await adSrc();try{await ADA.play()}catch(e){toast('المتصفح منع تشغيل الأذان تلقائيًا. افتح التطبيق والمس الشاشة مرة واحدة ثم أعد المحاولة.')}}
+ADA.onended=endAd;ADA.onerror=()=>{toast('ملف الأذان غير موجود. اختر ملفًا من الإعدادات أو ضع adhan.mp3 في الموقع.')};
+document.addEventListener('click',e=>{if(e.target.id=='adx')endAd();else if(e.target.id=='adt'){S.adh=S.adh===false;save();vS()}else if(e.target.id=='adtest')adhan(2);else if(e.target.id=='wlt'){S.wl=!S.wl;save();wl();vS()}},false);
+document.addEventListener('click',()=>{if(ADA.dataset.p)return;ADA.dataset.p=1;adSrc().then(s=>{ADA.src=s;ADA.muted=true;ADA.play().then(()=>{ADA.pause();ADA.muted=false;try{ADA.currentTime=0}catch(e){}}).catch(()=>{ADA.muted=false})})},{once:true});
+document.addEventListener('change',async e=>{if(e.target.id!='adf')return;const f=e.target.files[0];if(!f)return;try{const c=await caches.open('sakinah-audio');await c.put('/__adhan',new Response(f,{headers:{'Content-Type':f.type||'audio/mpeg'}}));S.adn=f.name;save();toast('تم حفظ ملف الأذان.');if(S.tab=='s')vS()}catch(x){toast('تعذّر حفظ الملف.')}});
+var WLK=null;function wl(){if(!S.wl||!('wakeLock' in navigator)||document.visibilityState!='visible')return;navigator.wakeLock.request('screen').then(l=>WLK=l).catch(()=>{})}
+document.addEventListener('visibilitychange',wl);
 /* Offline audio */
 var DL={busy:0,stop:0};
 async function dlSurah(s){const rc=S.rc||0,k=rc+':'+s;if(S.dl&&S.dl[k])return;const n=SU[s].a.length,us=[];if(s&&s!=8)us.push(aurl(0,1));for(let v=1;v<=n;v++)us.push(aurl(s,v));
@@ -244,6 +260,11 @@ function vS(){V.innerHTML=`<div class="card"><h2>المظهر</h2><div class="ro
 <div class="card"><h2>الموقع وطريقة الحساب</h2><select id="ct">${CITIES.map((c,i)=>`<option value="${i}" ${S.city==i?'selected':''}>${c[0]}</option>`).join('')}${S.lat!=null?`<option value="-1" ${S.city<0?'selected':''}>موقعي الحالي</option>`:''}</select>
 <div style="height:10px"></div><button class="btn" id="gp">استخدم موقعي الحالي</button><div style="height:10px"></div>
 <select id="mt">${Object.entries(METH).map(([k,v])=>`<option value="${k}" ${S.method==k?'selected':''}>${v[0]}</option>`).join('')}</select></div>
+<div class="card"><h2>الأذان</h2><div class="tg"><span>تشغيل الأذان وقت الصلاة</span><button class="btn ${S.adh===false?'':'on'}" id="adt">${S.adh===false?'متوقف':'مفعّل'}</button></div>
+<div class="tg"><span>إبقاء الشاشة مضاءة (يضمن عمل الأذان)</span><button class="btn ${S.wl?'on':''}" id="wlt">${S.wl?'مفعّل':'متوقف'}</button></div>
+<p style="color:var(--t2);font-size:14px;margin:6px 0">ملف الأذان الحالي: ${S.adn?S.adn:'adhan.mp3 من الموقع'}</p>
+<input type="file" id="adf" accept="audio/*" style="font-size:14px"><div style="height:10px"></div><button class="btn" id="adtest">تجربة الأذان الآن</button>
+<p style="color:var(--t2);font-size:13px;margin:10px 0 0">يعمل الأذان والتطبيق مفتوح. لتفعيله من «تنبيهات الصلاة» أدناه، ويمكن كتم أي صلاة من شاشة المواقيت.</p></div>
 <div class="card"><h2>التنبيهات</h2><div class="tg"><span>تنبيهات الصلاة (أثناء فتح التطبيق)</span><button class="btn ${S.notif?'on':''}" id="nt">${S.notif?'مفعّلة':'متوقفة'}</button></div><p style="color:var(--t2);font-size:13px;margin:0">يمكنك كتم كل صلاة من شاشة المواقيت.</p></div>
 <div class="card"><h2>مصدر النص</h2><p style="color:var(--t2);font-size:14px;margin:0">نص المصحف من مشروع <a href="https://tanzil.net" style="color:var(--sd)">Tanzil</a> (الإصدار البسيط 1.1) بترخيص Creative Commons Attribution 3.0، ويُنقل كما هو دون تعديل.</p></div><div class="card"><button class="btn" id="rst">مسح كل البيانات المحفوظة</button></div>`;
 V.onclick=e=>{const t=e.target.closest('[data-th]');if(t){S.theme=t.dataset.th;save();applyTheme();vS()}
@@ -268,6 +289,7 @@ else if(a){const i=+a.dataset.a,k=K[i],tx=$('#t'+i).value.trim(),n=Math.max(1,pa
 else if(t.id=='sv'){try{const db=await dbp();if(!db)return toast('تعذّر الاتصال بقاعدة البيانات.');await db.doc('config/main').set({a:DR.a,x:DR.x,h:DR.h});toast('تم النشر. سيراه المستخدمون فورًا.')}catch(x){toast('تعذّر الحفظ. تأكد أن حسابك مشرف.')}}}}
 addEventListener('hashchange',()=>go(location.hash=='#admin'?'x':(S.tab&&S.tab!='x'?S.tab:'p')));
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+wl();
 applyTheme();matchMedia('(prefers-color-scheme: dark)').addEventListener('change',applyTheme);go(location.hash=='#admin'?'x':(S.tab&&S.tab!='x'?S.tab:'p'));loadCfg();
 </script>
 </body>
