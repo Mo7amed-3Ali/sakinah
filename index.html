@@ -12,7 +12,6 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500&display=swap" rel="stylesheet">
-<script src="supabase-config.js"></script>
 <style>
 :root{--bg:#F3F1EB;--sf:#F9F7F2;--tx:#58554C;--t2:#77736A;--sg:#A3AE9F;--sd:#6A7866;--sl:#E6EAE1;--gd:#BBAA83;--ln:#E4E0D5;--on:#F9F7F2;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px)}
 :root[data-theme="night"]{--bg:#252A25;--sf:#2C312C;--tx:#D0CCC0;--t2:#908D80;--sg:#7E8D79;--sd:#A2B19C;--sl:#343B33;--gd:#B0A078;--ln:#373D36;--on:#232823;color-scheme:dark}
@@ -34,7 +33,7 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid 
 .btn.on{background:var(--sd);color:var(--on);border-color:var(--sd)}
 .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .sp{flex:1}
-input[type=text],input[type=email],input[type=password],select{background:var(--bg);border:1px solid var(--ln);border-radius:14px;padding:10px 14px;font-size:15px;width:100%}
+input[type=text],select{background:var(--bg);border:1px solid var(--ln);border-radius:14px;padding:10px 14px;font-size:15px;width:100%}
 input[type=range]{width:100%;accent-color:var(--sg)}
 /* quran */
 .ayahs{font:400 var(--fs,30px)/2.3 Amiri,serif;text-align:justify;padding:6px 4px}
@@ -85,10 +84,8 @@ input[type=range]{width:100%;accent-color:var(--sg)}
 const $=s=>document.querySelector(s),pad=n=>String(n).padStart(2,'0');
 let S={theme:'auto',fs:30,city:0,method:'egypt',notif:false,mute:{},pos:{s:0,v:1},bm:[],counts:{},lat:null,lng:null,tab:'p'};
 try{Object.assign(S,JSON.parse(localStorage.getItem('sk')||'{}'))}catch(e){}
-const save=()=>{if(typeof sched=='function')sched();try{localStorage.setItem('sk',JSON.stringify(S))}catch(e){}};
+const save=()=>{try{localStorage.setItem('sk',JSON.stringify(S))}catch(e){}};
 if(!S.q2){S.q2=1;S.pos={s:0,v:1};S.bm=[];try{localStorage.setItem('sk',JSON.stringify(S))}catch(e){}}
-if(!S.q3){S.q3=1;const o=S.dl||{},n={};for(const k in o){const p=k.split(':');n[p[0]+':'+p[1]+':'+(p[0]=='1'?'lo':'hi')]=1}S.dl=n;S.aq=Object.keys(n).length?'hi':'lo';try{localStorage.setItem('sk',JSON.stringify(S))}catch(e){}}
-if(!S.aq)S.aq='lo';
 const dayKey=()=>new Date().toLocaleDateString('en-CA');
 function applyTheme(){const t=S.theme=='auto'?(matchMedia('(prefers-color-scheme: dark)').matches?'night':'light'):S.theme;document.documentElement.dataset.theme=t;document.documentElement.style.setProperty('--fs',S.fs+'px')}
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),3500)}
@@ -165,17 +162,16 @@ var NQ=null;function search(q){q=norm(q.trim());if(!q)return list([]);if(!NQ)NQ=
 function marks(){list(S.bm.map(k=>k.split(':').map(Number)).map(x=>[x[0],x[1]]),'لم تضف علامات بعد.')}
 
 /* Audio */
-/* [الاسم, مجلد الجودة العالية, مجلد الجودة العادية] على everyayah.com */
-const RC=[['الشيخ محمد صديق المنشاوي','Minshawy_Murattal_128kbps','Minshawy_Murattal_128kbps'],['الشيخ ماهر المعيقلي','MaherAlMuaiqly128kbps','Maher_AlMuaiqly_64kbps'],['الشيخ مشاري العفاسي','Alafasy_128kbps','Alafasy_64kbps'],['الشيخ محمود خليل الحصري','Husary_128kbps','Husary_64kbps']];
+const RC=[['الشيخ محمد صديق المنشاوي','Minshawy_Murattal_128kbps'],['الشيخ ماهر المعيقلي','Maher_AlMuaiqly_64kbps'],['الشيخ مشاري العفاسي','Alafasy_128kbps'],['الشيخ محمود خليل الحصري','Husary_128kbps']];
 const AU=new Audio();AU.preload='auto';var AP={on:0,paused:0,s:0,v:1};
-const a3=n=>String(n).padStart(3,'0'),aurl=(s,v,q)=>'https://everyayah.com/data/'+RC[S.rc||0][(q||S.aq)=='hi'?1:2]+'/'+a3(s+1)+a3(v)+'.mp3';
-function playAt(s,v){AP={on:1,paused:0,s,v};delete AU.dataset.fb;AU.src=v==0?aurl(0,1):aurl(s,v);AU.play().catch(()=>{});mark(1);upd();
+const a3=n=>String(n).padStart(3,'0'),aurl=(s,v)=>'https://everyayah.com/data/'+RC[S.rc||0][1]+'/'+a3(s+1)+a3(v)+'.mp3';
+function playAt(s,v){AP={on:1,paused:0,s,v};AU.src=v==0?aurl(0,1):aurl(s,v);AU.play().catch(()=>{});mark(1);upd();
 try{if('mediaSession' in navigator){navigator.mediaSession.metadata=new MediaMetadata({title:SU[s].n+(v?' - آية '+v:''),artist:RC[S.rc||0][0],album:'سكينة'});navigator.mediaSession.setActionHandler('play',()=>pp());navigator.mediaSession.setActionHandler('pause',()=>pp());navigator.mediaSession.setActionHandler('nexttrack',()=>step(1));navigator.mediaSession.setActionHandler('previoustrack',()=>step(-1))}}catch(e){}}
 function startAt(){const s=S.pos.s;playAt(s,S.pos.v>1?S.pos.v:(s&&s!=8?0:1))}
 function pp(){if(AP.on){AU.pause();AP.on=0;AP.paused=1;upd()}else if(AP.paused){AP.on=1;AP.paused=0;AU.play().catch(()=>{});upd();mark(1)}else startAt()}
 function step(d){if(!AP.on&&!AP.paused)return startAt();const lo=AP.s&&AP.s!=8?0:1,v=Math.min(SU[AP.s].a.length,Math.max(lo,AP.v+d));playAt(AP.s,v)}
 AU.onended=()=>{if(!AP.on)return;if(AP.v<SU[AP.s].a.length)return playAt(AP.s,AP.v+1);if(AP.s<113){const s=AP.s+1;if(S.alt){S.rc=((S.rc||0)+1)%RC.length;save()}if(S.tab=='q'){S.pos={s,v:1};save();vQ()}playAt(s,s==8?1:0)}else{AP.on=0;upd()}};
-AU.onerror=()=>{if(!(AP.on||AP.paused))return;const alt=S.aq=='hi'?'lo':'hi',u=AP.v==0?aurl(0,1,alt):aurl(AP.s,AP.v,alt);if(!AU.dataset.fb&&u!=AU.src){AU.dataset.fb=1;AU.src=u;if(AP.on)AU.play().catch(()=>{});return}AP.on=0;AP.paused=0;upd();toast('تعذّر تشغيل الصوت. نزّل السورة وأنت متصل بالإنترنت لتعمل دون نت.')};
+AU.onerror=()=>{if(AP.on||AP.paused){AP.on=0;AP.paused=0;upd();toast('تعذّر تشغيل الصوت. تأكد من الاتصال بالإنترنت.')}};
 function upd(){const on=AP.on||AP.paused,p=$('#pp');if(p)p.textContent=AP.on?'إيقاف مؤقت':(AP.paused?'متابعة':'استماع');
 const t=$('#pst');if(t)t.textContent=on?(AP.v?'آية '+AP.v:'البسملة')+' · '+RC[S.rc||0][0]:'الصوت المنزَّل يعمل دون إنترنت';
 const np=$('#np');if(np)np.textContent=on?SU[AP.s].n:'اختر سورة للاستماع';
@@ -201,7 +197,7 @@ var WLK=null;function wl(){if(!CFG.ad.wl||!('wakeLock' in navigator)||document.v
 document.addEventListener('visibilitychange',wl);
 /* Offline audio */
 var DL={busy:0,stop:0};
-async function dlSurah(s){const rc=S.rc||0,q=S.aq,k=rc+':'+s+':'+q;if(S.dl&&S.dl[k])return;const n=SU[s].a.length,us=[];if(s&&s!=8)us.push(aurl(0,1,q));for(let v=1;v<=n;v++)us.push(aurl(s,v,q));
+async function dlSurah(s){const rc=S.rc||0,k=rc+':'+s;if(S.dl&&S.dl[k])return;const n=SU[s].a.length,us=[];if(s&&s!=8)us.push(aurl(0,1));for(let v=1;v<=n;v++)us.push(aurl(s,v));
 const c=await caches.open('sakinah-audio');let i=0;const el=document.querySelector('[data-dl="'+s+'"]');
 for(const u of us){if(DL.stop)return;if(!(await c.match(u))){let r;try{r=await fetch(u)}catch(e){r=await fetch(u,{mode:'no-cors'})}if(r.type!='opaque'&&!r.ok)throw new Error('http');await c.put(u,r)}i++;if(el&&S.tab=='r')el.textContent=Math.round(i/us.length*100)+'%'}
 (S.dl=S.dl||{})[k]=1;save()}
@@ -209,17 +205,13 @@ async function dlOne(s){if(!('caches' in window))return toast('المتصفح ل
 async function dlAll(){if(DL.busy){DL.stop=1;return toast('جارٍ الإيقاف…')}if(!('caches' in window))return toast('المتصفح لا يدعم التخزين دون إنترنت.');if(!confirm('تنزيل القرآن كاملًا لهذا القارئ يحتاج مئات الميجابايت. الأفضل أن تكون على شبكة Wi‑Fi. هل تريد المتابعة؟ (اضغط الزر نفسه لإيقاف التنزيل)'))return;
 DL.busy=1;DL.stop=0;const b=$('#dla');if(b)b.textContent='إيقاف التنزيل';try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist();for(let s=0;s<114&&!DL.stop;s++){await dlSurah(s);if(S.tab=='r'){const e=document.querySelector('[data-dl="'+s+'"]');if(e){e.textContent='✓ محمّلة';e.classList.add('on')}}}toast(DL.stop?'تم إيقاف التنزيل.':'اكتمل تنزيل القرآن.')}catch(e){toast('تعذّر إكمال التنزيل. جرّب مرة أخرى على اتصال أفضل.')}DL.busy=0;if(S.tab=='r')vR()}
 /* Recitations */
-document.addEventListener('click',async e=>{const b=e.target.closest('[data-aq]');if(b){S.aq=b.dataset.aq;save();if(AP.on||AP.paused){const w=AP.on;playAt(AP.s,AP.v);if(!w){AU.pause();AP.on=0;AP.paused=1}}if(S.tab=='r')vR();return}
-if(e.target.id=='dlx'){if(DL.busy)return toast('هناك تنزيل جارٍ، أوقفه أولًا.');if(!confirm('سيُحذف كل الصوت المنزَّل من الجهاز ولن يعمل دون إنترنت حتى تنزّله من جديد. متابعة؟'))return;try{await caches.delete('sakinah-audio')}catch(x){}S.dl={};save();toast('تم حذف الصوت المنزَّل.');if(S.tab=='r')vR()}});
 const sv=s=>s&&s!=8?0:1;
 function vR(){V.innerHTML=`<div class="card"><h2>القارئ</h2><div class="row" style="flex-wrap:wrap">${RC.map((r,i)=>`<button class="btn ${i==(S.rc||0)?'on':''}" data-rc="${i}">${r[0].replace('الشيخ ','')}</button>`).join('')}</div>
-<h2 style="margin-top:14px">جودة الصوت</h2><div class="row">${[['lo','عادية'],['hi','عالية']].map(q=>`<button class="btn ${S.aq==q[0]?'on':''}" data-aq="${q[0]}">${q[1]}</button>`).join('')}</div><p style="color:var(--t2);font-size:13px;margin:6px 0 0">العادية أخف في التنزيل والمساحة. العالية أنقى صوتًا: نزّلها مرة واحدة وأنت متصل بالإنترنت ثم تعمل دون نت. بعض القرّاء لهم جودة واحدة فقط.</p>
 <div class="tg" style="margin-top:8px"><span>تناوب القرّاء مع كل سورة</span><button class="btn ${S.alt?'on':''}" id="alt">${S.alt?'مفعّل':'متوقف'}</button></div>
 <div class="tg"><span>الاستماع دون إنترنت</span><button class="btn" id="dla">تنزيل القرآن كاملًا لهذا القارئ</button></div>
-<div class="tg"><span>مساحة الصوت المنزَّل</span><button class="btn" id="dlx">حذف كل الصوت المنزَّل</button></div>
 <p style="color:var(--t2);font-size:13px;margin:0">للاستماع دون إنترنت نزّل السور التي تريدها (زر «تنزيل» بجانب كل سورة). التنزيل الكامل يحتاج مساحة كبيرة (مئات الميجابايت). تتابع السور تلقائيًا واحدة بعد الأخرى حتى سورة الناس.</p></div>
 <div class="card" style="text-align:center"><div id="np" style="font:700 24px Amiri,serif;color:var(--sd)"></div><div id="pst" style="color:var(--t2);font-size:13px;margin:4px 0 10px"></div><div class="row" style="justify-content:center"><button class="btn" id="pv">السابقة</button><button class="btn on" id="pp">استماع</button><button class="btn" id="pn">التالية</button></div></div>
-<div class="card">${SU.map((u,i)=>`<div class="pr" data-ps="${i}" style="cursor:pointer"><span style="color:var(--t2);width:36px">${i+1}</span><span class="sp">${u.n}</span><button class="bell ${S.dl&&S.dl[(S.rc||0)+':'+i+':'+S.aq]?'on':''}" data-dl="${i}" aria-label="تنزيل للعمل دون إنترنت">${S.dl&&S.dl[(S.rc||0)+':'+i+':'+S.aq]?'✓ محمّلة':'تنزيل'}</button><span style="font-size:13px;min-width:70px;text-align:left">استماع</span></div>`).join('')}</div>`;upd()}
+<div class="card">${SU.map((u,i)=>`<div class="pr" data-ps="${i}" style="cursor:pointer"><span style="color:var(--t2);width:36px">${i+1}</span><span class="sp">${u.n}</span><button class="bell ${S.dl&&S.dl[(S.rc||0)+':'+i]?'on':''}" data-dl="${i}" aria-label="تنزيل للعمل دون إنترنت">${S.dl&&S.dl[(S.rc||0)+':'+i]?'✓ محمّلة':'تنزيل'}</button><span style="font-size:13px;min-width:70px;text-align:left">استماع</span></div>`).join('')}</div>`;upd()}
 document.addEventListener('click',e=>{const t=e.target,d=t.closest('[data-dl]'),r=t.closest('[data-rc]'),p=t.closest('[data-ps]');
 if(d){dlOne(+d.dataset.dl)}
 else if(t.id=='dla'){dlAll()}
@@ -268,7 +260,7 @@ function vS(){V.innerHTML=`<div class="card"><h2>المظهر</h2><div class="ro
 <div class="card"><h2>الموقع وطريقة الحساب</h2><select id="ct">${CITIES.map((c,i)=>`<option value="${i}" ${S.city==i?'selected':''}>${c[0]}</option>`).join('')}${S.lat!=null?`<option value="-1" ${S.city<0?'selected':''}>موقعي الحالي</option>`:''}</select>
 <div style="height:10px"></div><button class="btn" id="gp">استخدم موقعي الحالي</button><div style="height:10px"></div>
 <select id="mt">${Object.entries(METH).map(([k,v])=>`<option value="${k}" ${S.method==k?'selected':''}>${v[0]}</option>`).join('')}</select></div>
-${acctCard()}<div class="card"><h2>مصدر النص</h2><p style="color:var(--t2);font-size:14px;margin:0">نص المصحف من مشروع <a href="https://tanzil.net" style="color:var(--sd)">Tanzil</a> (الإصدار البسيط 1.1) بترخيص Creative Commons Attribution 3.0، ويُنقل كما هو دون تعديل.</p></div><div class="card"><button class="btn" id="rst">مسح كل البيانات المحفوظة</button></div>`;
+<div class="card"><h2>مصدر النص</h2><p style="color:var(--t2);font-size:14px;margin:0">نص المصحف من مشروع <a href="https://tanzil.net" style="color:var(--sd)">Tanzil</a> (الإصدار البسيط 1.1) بترخيص Creative Commons Attribution 3.0، ويُنقل كما هو دون تعديل.</p></div><div class="card"><button class="btn" id="rst">مسح كل البيانات المحفوظة</button></div>`;
 V.onclick=e=>{const t=e.target.closest('[data-th]');if(t){S.theme=t.dataset.th;save();applyTheme();vS()}
 if(e.target.id=='nt'){if(!S.notif&&typeof Notification!='undefined')Notification.requestPermission();S.notif=!S.notif;save();vS()}
 if(e.target.id=='gp')navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>{S.lat=p.coords.latitude;S.lng=p.coords.longitude;S.city=-1;save();toast('تم ضبط موقعك.');vS()},()=>toast('تعذّر تحديد الموقع. اختر مدينة من القائمة.')):toast('المتصفح لا يدعم تحديد الموقع.');
@@ -289,42 +281,6 @@ if(h){const k=K[+h.dataset.h];DR.h[k]=!DR.h[k];drawX()}
 else if(d){const[i,j]=d.dataset.d.split('|'),k=K[+i];DR.x[k].splice(+j,1);drawX()}
 else if(a){const i=+a.dataset.a,k=K[i],tx=$('#t'+i).value.trim(),n=Math.max(1,parseInt($('#n'+i).value)||1);if(!tx)return toast('اكتب نص الذكر أولًا.');(DR.x[k]=DR.x[k]||[]).push([tx,n]);drawX()}
 else if(t.id=='sv'){try{const db=await dbp();if(!db)return toast('تعذّر الاتصال بقاعدة البيانات.');await db.doc('config/main').set({a:DR.a,x:DR.x,h:DR.h});toast('تم النشر. سيراه المستخدمون فورًا.')}catch(x){toast('تعذّر الحفظ. تأكد أن حسابك مشرف.')}}}}
-/* Account (Supabase) */
-var SBU=String(window.SB_URL||'').replace(/\/+$/,''),SBK=String(window.SB_KEY||''),SBON=!!(SBU&&SBK&&!/YOUR/i.test(SBU+SBK)),SS=null,LAST='',PT_=0,PUSHING=0;
-try{SS=JSON.parse(localStorage.getItem('sksb')||'null')}catch(e){}
-const ssave=()=>{try{SS?localStorage.setItem('sksb',JSON.stringify(SS)):localStorage.removeItem('sksb')}catch(e){}};
-const SYNC=['bm','pos','fs','theme','method','rc','alt','aq'];
-function pick(){const o={},p=dayKey();SYNC.forEach(k=>{if(S[k]!==undefined)o[k]=S[k]});o.counts={};for(const k in S.counts)if(k.indexOf(p)==0)o.counts[k]=S.counts[k];return o}
-async function sbf(path,o,tk){o=o||{};const h=Object.assign({apikey:SBK,'Content-Type':'application/json'},o.headers||{});if(tk)h.Authorization='Bearer '+tk;const r=await fetch(SBU+path,Object.assign({},o,{headers:h}));let j=null;try{j=await r.json()}catch(e){}if(!r.ok){const x=new Error((j&&(j.msg||j.error_description||j.message))||'http');x.status=r.status;x.code=j&&(j.error_code||j.code);throw x}return j}
-function setSS(j,rt){SS={at:j.access_token,rt:j.refresh_token||rt,exp:Date.now()/1000+(+j.expires_in||3600),u:{id:j.user.id,email:j.user.email}};ssave()}
-async function tok(){if(!SS)return null;if(SS.exp-60>Date.now()/1000)return SS.at;try{const j=await sbf('/auth/v1/token?grant_type=refresh_token',{method:'POST',body:JSON.stringify({refresh_token:SS.rt})});setSS(j);return SS.at}catch(e){if(e.status==400||e.status==401){SS=null;ssave();if(S.tab=='s')vS()}return null}}
-function errMsg(x){if(!x.status)return 'لا يوجد اتصال بالإنترنت.';const c=x.code||'';if(c=='invalid_credentials')return 'البريد أو كلمة المرور غير صحيحة.';if(c=='user_already_exists')return 'هذا البريد مسجّل بالفعل. سجّل الدخول.';if(c=='email_not_confirmed')return 'أكّد بريدك أولًا من الرسالة التي وصلتك.';if(c=='weak_password')return 'كلمة المرور ضعيفة. اجعلها أطول.';if(c.indexOf('rate_limit')>0||x.status==429)return 'محاولات كثيرة. انتظر قليلًا ثم أعد المحاولة.';return 'تعذّر تنفيذ الطلب.'}
-async function push(){if(!SBON||!SS||PUSHING)return;const t=await tok();if(!t)return;PUSHING=1;try{const r=await sbf('/rest/v1/user_data?on_conflict=user_id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=representation'},body:JSON.stringify({user_id:SS.u.id,data:pick()})},t);if(r&&r[0])S.sv=r[0].updated_at;S.dirty=0;LAST=JSON.stringify(pick());save()}finally{PUSHING=0}}
-function sched(){if(!SBON||!SS)return;if(JSON.stringify(pick())===LAST)return;S.dirty=1;clearTimeout(PT_);PT_=setTimeout(()=>push().catch(()=>{}),15000)}
-async function pull(){if(!SBON||!SS)return;const t=await tok();if(!t)return;let r;try{r=await sbf('/rest/v1/user_data?select=data,updated_at&user_id=eq.'+SS.u.id,{},t)}catch(e){return}
-const row=r&&r[0];let ch=0;
-if(row&&row.updated_at!=S.sv){const d=row.data||{};if(!S.dirty)SYNC.forEach(k=>{if(d[k]!==undefined)S[k]=d[k]});else S.bm=[...new Set([...(S.bm||[]),...(d.bm||[])])];const dc=d.counts||{};for(const k in dc)S.counts[k]=Math.max(S.counts[k]||0,dc[k]);S.sv=row.updated_at;ch=1}
-if(!row||S.dirty){try{await push()}catch(e){}}else{LAST=JSON.stringify(pick());save()}
-if(ch){applyTheme();go(S.tab)}else if(S.tab=='s')vS()}
-function acctCard(){const st='color:var(--t2);font-size:14px;margin:0 0 10px';
-if(!SBON)return `<div class="card"><h2>الحساب</h2><p style="${st}">تسجيل الدخول غير مفعّل بعد. ضع بيانات مشروعك في ملف supabase-config.js.</p></div>`;
-if(SS)return `<div class="card"><h2>الحساب</h2><p style="margin:0 0 6px;direction:ltr;text-align:right">${esc(SS.u.email||'')}</p><p style="${st}">${S.sv?'تتم مزامنة العلامات والتقدم والإعدادات بين أجهزتك.':'لم تتم المزامنة بعد.'}</p><div class="row"><button class="btn on" id="ac-sync">مزامنة الآن</button><button class="btn" id="ac-out">تسجيل الخروج</button></div></div>`;
-return `<div class="card"><h2>الحساب</h2><p style="${st}">سجّل الدخول لحفظ علاماتك وتقدّمك ومزامنتها بين أجهزتك. التطبيق يعمل كاملًا بدون حساب.</p><input type="email" id="ac-e" placeholder="البريد الإلكتروني" autocomplete="email" dir="ltr" style="margin-bottom:8px"><input type="password" id="ac-p" placeholder="كلمة المرور" autocomplete="current-password" dir="ltr"><div class="row" style="margin-top:10px"><button class="btn on" id="ac-in">دخول</button><button class="btn" id="ac-up">حساب جديد</button><button class="btn" id="ac-rs">نسيت كلمة المرور</button></div></div>`}
-document.addEventListener('click',async e=>{const id=e.target.id||'';if(id.indexOf('ac-')!=0)return;const em=(($('#ac-e')||{}).value||'').trim(),pw=($('#ac-p')||{}).value||'';
-try{if(id=='ac-in'||id=='ac-up'){if(!em||!pw)return toast('اكتب البريد وكلمة المرور.');if(id=='ac-up'&&pw.length<6)return toast('كلمة المرور 6 أحرف على الأقل.');
-const j=await sbf(id=='ac-in'?'/auth/v1/token?grant_type=password':'/auth/v1/signup',{method:'POST',body:JSON.stringify({email:em,password:pw})});
-if(j&&j.access_token){setSS(j);toast('تم تسجيل الدخول.');vS();await pull()}else toast('أُرسلت رسالة تأكيد إلى بريدك. اضغط الرابط فيها ثم سجّل الدخول.')}
-else if(id=='ac-rs'){if(!em)return toast('اكتب بريدك أولًا ثم اضغط «نسيت كلمة المرور».');await sbf('/auth/v1/recover',{method:'POST',body:JSON.stringify({email:em})});toast('إن كان البريد مسجّلًا فقد أُرسل إليه رابط الاستعادة.')}
-else if(id=='ac-out'){SS=null;ssave();delete S.sv;delete S.dirty;LAST='';save();toast('تم تسجيل الخروج. بياناتك باقية على هذا الجهاز.');vS()}
-else if(id=='ac-sync'){toast('جارٍ المزامنة…');await pull();toast('تمت المزامنة.')}}
-catch(x){toast(errMsg(x))}});
-addEventListener('online',()=>{if(SS)pull().catch(()=>{})});
-addEventListener('visibilitychange',()=>{if(document.visibilityState=='hidden'&&S.dirty&&SS)push().catch(()=>{})});
-/* روابط البريد (تأكيد الحساب / استعادة كلمة المرور) تعود إلى الموقع وفي الرابط بيانات الجلسة */
-(function(){if(!SBON)return;const h=new URLSearchParams(location.hash.slice(1)),t=h.get('access_token');if(!t)return;const ty=h.get('type');history.replaceState(null,'',location.pathname+location.search);
-setTimeout(async()=>{try{if(ty=='recovery'){const p=prompt('اكتب كلمة المرور الجديدة (6 أحرف على الأقل)');if(!p||p.length<6)return toast('لم تتغير كلمة المرور.');await sbf('/auth/v1/user',{method:'PUT',body:JSON.stringify({password:p})},t);toast('تم تغيير كلمة المرور. سجّل الدخول الآن.')}
-else{const u=await sbf('/auth/v1/user',{},t);setSS({access_token:t,refresh_token:h.get('refresh_token'),expires_in:h.get('expires_in'),user:u});toast('تم تأكيد حسابك وتسجيل دخولك.');await pull()}}catch(x){toast(errMsg(x))}},800)})();
-if(SS)pull().catch(()=>{});
 addEventListener('hashchange',()=>go(location.hash=='#admin'?'x':(S.tab&&S.tab!='x'?S.tab:'p')));
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 wl();
